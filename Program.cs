@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Xml.Linq;
+using System.Diagnostics;
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -9,8 +12,8 @@ using Discord.WebSocket;
 using GuildRaidBot.Core.Enum;
 using GuildRaidBot.Util;
 using GuildRaidBot.Config;
-using System.Xml.Linq;
-using System.Diagnostics;
+using GuildRaidBot.Core.Handler;
+
 
 namespace GuildRaidBot;
 
@@ -56,9 +59,9 @@ internal class Program
                 using var interactionService = _services.GetRequiredService<InteractionService>();
                 using var logger = _services.GetRequiredService<Logger>();
 
-                //await mServices.GetRequiredService<InteractionHandler>().InitializeAsync();
-                //mServices.GetRequiredService<MessageHandler>().Initialize();
-                //mServices.GetRequiredService<ButtonExecuteHandler>().Initialize();
+                await _services.GetRequiredService<InteractionHandler>().InitializeAsync();
+                _services.GetRequiredService<MessageHandler>().Initialize();
+                _services.GetRequiredService<ButtonExecuteHandler>().Initialize();
                 //mServices.GetRequiredService<SqliteConnector>().Initialize();
 
                 // Login and connect.

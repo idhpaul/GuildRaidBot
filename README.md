@@ -2,34 +2,43 @@
 
 --------
 ## 📍 Index
-- [⚙️ Build Settings](https://github.com/idhpaul/GuildRaidBot?tab=readme-ov-file#%EF%B8%8F-build-settings)
-- [📚 Packages](https://github.com/idhpaul/GuildRaidBot?tab=readme-ov-file#-packages)
-- [📸 ScreenShot](https://github.com/idhpaul/GuildRaidBot?tab=readme-ov-file#-screenshot)
+- ⚙️ [Required settings]()
+- 📚 [Packages]()
+- 📸 [ScreenShot]()
 ------
-## ⚙️ Build Settings
-- __secrets.json__ ([ref : App-Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-8.0&tabs=windows#user-secrets-in-non-web-applications))
-	```
-    {
-        "DiscordToken": "<input : discord channel bot token>",
+## ⚙️ Required settings
+
+### 1) Role
+* __Define ``Admin role``__
+    > ⚠️ __You must setting same role name.__
+    > * discord channel setting([How to make Role](https://support.discord.com/hc/en-us/articles/206029707-Setting-Up-Permissions-FAQ))
+    > * src([Enum/Role.cs](https://github.com/idhpaul/GuildRaidBot/blob/master/Enum/Role.cs)) 
+### 2) Channel & Category
+* __Create ``3 Channel`` and ``1 Category``__
+    > __Each ID must be declared in secrets.json.__
+### 3) secrets.json ([ref : App-Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-8.0&tabs=windows#user-secrets-in-non-web-applications))
+```
+{
+    "DiscordToken": "<input : discord channel bot token>",
+    "Config": {
+        "GuildID": 00000000000000,
+        "RegisterChannelID": 00000000000000,
+        "ConfirmChannelID": 00000000000000,
+        "InquireCategoryID": 00000000000000,
+        "SqliteDbName": "<input : sqlite db name (ex:grb.sqlite)>"
+    },
+    "Dev": {
+        "DiscordToken": "<input : develop discord channel bot token>",
         "Config": {
             "GuildID": 00000000000000,
             "RegisterChannelID": 00000000000000,
             "ConfirmChannelID": 00000000000000,
             "InquireCategoryID": 00000000000000,
-            "SqliteDbName": "<input : sqlite db name (ex:grb.sqlite)>"
+            "SqliteDbName": "<input : sqlite db name (ex:grb_dev.sqlite)>"
         },
-        "Dev": {
-            "DiscordToken": "<input : develop discord channel bot token>",
-            "Config": {
-                "GuildID": 00000000000000,
-                "RegisterChannelID": 00000000000000,
-                "ConfirmChannelID": 00000000000000,
-                "InquireCategoryID": 00000000000000,
-                "SqliteDbName": "<input : sqlite db name (ex:grb_dev.sqlite)>"
-            },
-        }
     }
-	```
+}
+```
 
 ## 📚 Packages
 ### Packages
