@@ -2,9 +2,9 @@
 
 --------
 ## 📍 Index
-- ⚙️ [Required settings]()
-- 📚 [Packages]()
-- 📸 [ScreenShot]()
+- ⚙️ [Required settings](https://github.com/idhpaul/GuildRaidBot?tab=readme-ov-file#%EF%B8%8F-required-settings)
+- 📚 [Packages](https://github.com/idhpaul/GuildRaidBot?tab=readme-ov-file#-packages)
+- 📸 [ScreenShot](https://github.com/idhpaul/GuildRaidBot?tab=readme-ov-file#-screenshot)
 ------
 ## ⚙️ Required settings
 
