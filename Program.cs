@@ -9,10 +9,11 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 
-using GuildRaidBot.Core.Enum;
-using GuildRaidBot.Util;
 using GuildRaidBot.Config;
 using GuildRaidBot.Core.Handler;
+using GuildRaidBot.Core.Enum;
+using GuildRaidBot.Data;
+using GuildRaidBot.Util;
 
 
 namespace GuildRaidBot;
@@ -20,7 +21,7 @@ namespace GuildRaidBot;
 internal class Program
 {
     private static IServiceProvider _services = default!;
-    private readonly static EProgramMode _mode = EProgramMode.Dev;
+    public readonly static EProgramMode _mode = EProgramMode.Dev;
 
     public static async Task Main(string[] args)
     {
@@ -30,17 +31,17 @@ internal class Program
 
             lifetime.ApplicationStarted.Register(() =>
             {
-                Console.WriteLine($"Started / Mode : {_mode.ToString()}");
+                Log.Information($"Started / Mode : {_mode}");
             });
             lifetime.ApplicationStopping.Register(() =>
             {
-                Console.WriteLine("Stopping firing");
-                Console.WriteLine("Stopping end");
+                Log.Information("Stopping firing");
+                Log.Information("Stopping end");
             });
             lifetime.ApplicationStopped.Register(() =>
             {
-                Console.WriteLine("Stopped firing");
-                Console.WriteLine("Stopped end");
+                Log.Information("Stopped firing");
+                Log.Information("Stopped end");
             });
 
             host.Start();
@@ -59,10 +60,10 @@ internal class Program
                 using var interactionService = _services.GetRequiredService<InteractionService>();
                 using var logger = _services.GetRequiredService<Logger>();
 
-                await _services.GetRequiredService<InteractionHandler>().InitializeAsync();
+                await _services.GetRequiredService<InteractionHandler>().Initialize();
                 _services.GetRequiredService<MessageHandler>().Initialize();
                 _services.GetRequiredService<ButtonExecuteHandler>().Initialize();
-                //mServices.GetRequiredService<SqliteConnector>().Initialize();
+                _services.GetRequiredService<SqliteConnector>().Initialize();
 
                 // Login and connect.
                 await client.LoginAsync(TokenType.Bot, discordToken);
@@ -72,23 +73,21 @@ internal class Program
                 host.WaitForShutdown();
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine("Check Exception");
             }
         }
     }
 
     private static string getTokenFromSecretJson(IConfigurationRoot secretKey)
     {
-        string discordToken = (_mode == EProgramMode.Live) ? secretKey["DiscordToken"] : secretKey["Dev:DiscordToken"];
+        string? discordToken = (_mode == EProgramMode.Live) ? secretKey["DiscordToken"] : secretKey["Dev:DiscordToken"];
         Debug.Assert(discordToken is not null);
-
-        // check value
         if (discordToken is null)
         {
             throw new Exception($"Check DiscordToken value at secret.json file  / " +
-                                $"DiscordToken : {discordToken ??= "null"}");
+                                $"DiscordToken : {discordToken ?? "null"}");
         }
 
         return discordToken;
@@ -102,7 +101,7 @@ internal class Program
         ulong registerChannelID = Convert.ToUInt64((_mode == EProgramMode.Live) ? secretKey["Config:RegisterChannelID"] : secretKey["Dev:Config:RegisterChannelID"]);
         ulong confirmChannelID = Convert.ToUInt64((_mode == EProgramMode.Live) ? secretKey["Config:ConfirmChannelID"] : secretKey["Dev:Config:ConfirmChannelID"]);
         ulong inquireCategoryID = Convert.ToUInt64((_mode == EProgramMode.Live) ? secretKey["Config:InquireCategoryID"] : secretKey["Dev:Config:InquireCategoryID"]);
-        string sqliteDbName = (_mode == EProgramMode.Live) ? secretKey["Config:SqliteDbName"] : secretKey["Dev:Config:SqliteDbName"];
+        string? sqliteDbName = (_mode == EProgramMode.Live) ? secretKey["Config:SqliteDbName"] : secretKey["Dev:Config:SqliteDbName"];
 
         Debug.Assert(guildID != 0 );
         Debug.Assert(registerChannelID != 0 );
@@ -122,7 +121,7 @@ internal class Program
                 $"RegisterChannelID : {guildID}, " +
                 $"ConfirmChannelID : {guildID}, " +
                 $"InquireCategoryID : {guildID}, " +
-                $"SqliteDbName : {sqliteDbName ??= "null"}"
+                $"SqliteDbName : {sqliteDbName ?? "null"}"
                 );
         }
 
@@ -137,7 +136,7 @@ internal class Program
         
     }
 
-    private static IServiceProvider configureServices(ConfigValue configValue)
+    private static ServiceProvider configureServices(ConfigValue configValue)
     {
         var serviceCollection = new ServiceCollection()
         .AddSingleton<BotConfig>(new BotConfig(configValue))
@@ -145,7 +144,7 @@ internal class Program
         {
             var discordSocketConfig = new DiscordSocketConfig
             {
-                LogLevel = LogSeverity.Verbose,
+                LogLevel = (_mode == EProgramMode.Live) ? LogSeverity.Info : LogSeverity.Verbose,
                 MessageCacheSize = 100,
                 GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers | GatewayIntents.MessageContent,
                 AlwaysDownloadUsers = true,
@@ -157,11 +156,15 @@ internal class Program
         {
             var interactionConfig = new InteractionServiceConfig
             {
-                LogLevel = LogSeverity.Verbose,
+                LogLevel = (_mode == EProgramMode.Live) ? LogSeverity.Info : LogSeverity.Verbose,
             };
 
             return new InteractionService(provider.GetRequiredService<DiscordSocketClient>().Rest, interactionConfig);
         })
+        .AddSingleton<InteractionHandler>()
+        .AddSingleton<MessageHandler>()
+        .AddSingleton<ButtonExecuteHandler>()
+        .AddSingleton<SqliteConnector>()
         .AddSingleton<Logger>();
 
         return serviceCollection.BuildServiceProvider();

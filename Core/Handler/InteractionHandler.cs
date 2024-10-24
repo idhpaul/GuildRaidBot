@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using GuildRaidBot.Util;
+using Serilog;
 
 namespace GuildRaidBot.Core.Handler
 {
@@ -17,19 +18,17 @@ namespace GuildRaidBot.Core.Handler
         private readonly DiscordSocketClient _client;
         private readonly InteractionService _handler;
         private readonly IServiceProvider _services;
-        private readonly Logger _log;
 
-        public InteractionHandler(DiscordSocketClient client, InteractionService handler, IServiceProvider services, Logger log)
+        public InteractionHandler(DiscordSocketClient client, InteractionService handler, IServiceProvider services)
         {
             _client = client;
             _handler = handler;
             _services = services;
-            _log = log;
 
-            _log.Log.Information("InteractionHandler constructor called");
+            Log.Debug("InteractionHandler constructor called");
         }
 
-        public async Task InitializeAsync()
+        public async Task Initialize()
         {
             // Process when the client is ready, so we can register our commands.
             _client.Ready += ReadyAsync;

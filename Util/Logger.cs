@@ -5,17 +5,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Discord.Interactions;
-using Discord.WebSocket;
 using Serilog;
 using Serilog.Core;
+using Discord.Interactions;
+using Discord.WebSocket;
 using System.Diagnostics;
 
 namespace GuildRaidBot.Util
 {
     public class Logger : IDisposable
     {
-        public readonly Serilog.Core.Logger Log = default!;
+        public readonly Serilog.Core.Logger log = default!;
 
         private readonly DiscordSocketClient _client;
         private readonly InteractionService _interactionService;
@@ -28,19 +28,30 @@ namespace GuildRaidBot.Util
             _client.Log += logHandler;
             _interactionService.Log += logHandler;
 
-            Log = new LoggerConfiguration()
-            .WriteTo.Console()
-            .WriteTo.File("log.txt",
-                rollingInterval: RollingInterval.Day,
-                rollOnFileSizeLimit: true)
-            .CreateLogger();
+            log = (Program._mode == Core.Enum.EProgramMode.Dev)
+                ? new LoggerConfiguration()
+                    .MinimumLevel.Verbose()
+                    .WriteTo.Console()
+                    .WriteTo.File("./log/log.txt",
+                        rollingInterval: RollingInterval.Day,
+                        rollOnFileSizeLimit: true)
+                    .CreateLogger()
+                : new LoggerConfiguration()
+                    .WriteTo.Console()
+                    .WriteTo.File("./log/log.txt",
+                        rollingInterval: RollingInterval.Day,
+                        rollOnFileSizeLimit: true)
+                    .CreateLogger();
+
+            Log.Logger = log;
+            Log.Information("=-=-=-=-=-=-=-=-=-");
         }
 
         public void Dispose()
         {
-            Log.Information("LogService dispose called");
+            Log.Information("Logger dispose called");
 
-            Log.Dispose();
+            Log.CloseAndFlush();
         }
 
         private Task logHandler(LogMessage message)
@@ -50,27 +61,27 @@ namespace GuildRaidBot.Util
                 switch (message.Severity)
                 {
                     case LogSeverity.Critical:
-                        Log.Fatal(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases.First()}"
+                        Log.Fatal(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases[0]}"
                             + $" failed to execute in {cmdException.Context.Channel}.");
                         break;
                     case LogSeverity.Error:
-                        Log.Error(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases.First()}"
+                        Log.Error(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases[0]}"
                             + $" failed to execute in {cmdException.Context.Channel}.");
                         break;
                     case LogSeverity.Warning:
-                        Log.Warning(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases.First()}"
+                        Log.Warning(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases[0]}"
                             + $" failed to execute in {cmdException.Context.Channel}.");
                         break;
                     case LogSeverity.Info:
-                        Log.Information(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases.First()}"
+                        Log.Information(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases[0]}"
                             + $" failed to execute in {cmdException.Context.Channel}.");
                         break;
                     case LogSeverity.Verbose:
-                        Log.Verbose(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases.First()}"
+                        Log.Verbose(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases[0]}"
                             + $" failed to execute in {cmdException.Context.Channel}.");
                         break;
                     case LogSeverity.Debug:
-                        Log.Debug(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases.First()}"
+                        Log.Debug(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases[0]}"
                             + $" failed to execute in {cmdException.Context.Channel}.");
                         break;
                     default:
@@ -80,7 +91,7 @@ namespace GuildRaidBot.Util
             }
             else if(message.Exception is Exception exception)
             {
-                Log.Fatal(exception, $"[Command/{message.Severity}] {exception.Message}"
+                log.Fatal(exception, $"[Command/{message.Severity}] {exception.Message}"
                             + $" failed to execute in {exception.StackTrace}.");
             }
             else

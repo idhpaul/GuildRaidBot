@@ -12,7 +12,7 @@
 * __Define ``Admin role``__
     > ⚠️ __You must setting same role name.__
     > * discord channel setting([How to make Role](https://support.discord.com/hc/en-us/articles/206029707-Setting-Up-Permissions-FAQ))
-    > * src([Enum/Role.cs](https://github.com/idhpaul/GuildRaidBot/blob/master/Enum/Role.cs)) 
+    > * src([Enum/ERole.cs](https://github.com/idhpaul/GuildRaidBot/blob/master/Enum/ERole.cs)) 
 ### 2) Channel & Category
 * __Create ``3 Channel`` and ``1 Category``__
     > __Each ID must be declared in secrets.json.__
@@ -43,6 +43,7 @@
 ## 📚 Packages
 ### Packages
 - **Discord.Net**
+- **Dapper** ([tutorial](https://dappertutorial.net/dapper))
 - **Serilog**
 - **Microsoft.Extensions.Configuration.UserSecrets** ([ref : App-Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-8.0&tabs=windows#user-secrets-in-non-web-applications))
 - **Microsoft.Extensions.Hosting** ([ref : Generic-Host](https://learn.microsoft.com/ko-kr/dotnet/core/extensions/generic-host?tabs=appbuilder))

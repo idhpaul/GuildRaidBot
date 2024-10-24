@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace GuildRaidBot.Config
 {
-    public struct ConfigValue
+    public readonly struct ConfigValue
     {
         public ulong GuildID { get; init; }
         public ulong RegisterChannelID { get; init; }
@@ -19,13 +19,15 @@ namespace GuildRaidBot.Config
 
     public class BotConfig
     {
+#pragma warning disable IDE0051 // 사용되지 않는 private 멤버 제거
         private readonly string _name = "GRB";
         private readonly string _version = "0.0.15.beta";
         private readonly string _lastUpdateDate = "24.10.23.";
         private readonly string _description = "길드 레이드 일정 등록 및 관리용 봇입니다.";
+#pragma warning restore IDE0051 // 사용되지 않는 private 멤버 제거
 
-        private readonly string _sqliteDbPath = default!;
-        private readonly string _sqliteConnection = default!;
+        public readonly string SqliteDbPath = default!;
+        public readonly string SqliteConnection = default!;
 
         public ConfigValue ConfigValue { get; private init; }
 
@@ -33,8 +35,8 @@ namespace GuildRaidBot.Config
         {
             ConfigValue = configValue;
 
-            _sqliteDbPath = $"{Path.Combine(Environment.CurrentDirectory, ConfigValue.SqliteDbName)}";
-            _sqliteConnection = $"Data Source={ConfigValue.SqliteDbName}";
+            SqliteDbPath = $"{Path.Combine(Environment.CurrentDirectory, ConfigValue.SqliteDbName)}";
+            SqliteConnection = $"Data Source={ConfigValue.SqliteDbName}";
         }
     }
 }
