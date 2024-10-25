@@ -27,6 +27,12 @@
     <Using Include="Serilog" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Model1.Context.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+  </ItemGroup>
+
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="if not exist $(TargetDir)\log mkdir $(TargetDir)\log" />
   </Target>

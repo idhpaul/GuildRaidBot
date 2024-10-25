@@ -31,7 +31,7 @@ namespace GuildRaidBot.Core.Handler
 
         private async Task OnMessageReceivedAsync(SocketMessageComponent component)
         {
-            
+
         }
     }
 }

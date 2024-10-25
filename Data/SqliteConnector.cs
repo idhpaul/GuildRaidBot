@@ -11,6 +11,8 @@ using System.Data.SQLite;
 
 using GuildRaidBot.Config;
 using GuildRaidBot.Util;
+using GuildRaidBot.Data.Entity;
+using Dapper.Contrib.Extensions;
 
 namespace GuildRaidBot.Data
 {
@@ -61,13 +63,14 @@ namespace GuildRaidBot.Data
 
             string scheduleTable = @"
                  CREATE TABLE IF NOT EXISTS Schedule (
-                    schedule_ID INTEGER PRIMARY KEY,
-                    title TEXT,
-                    difficult TEXT DEFAULT '',
-                    goal TEXT DEFAULT '',
-                    datetime TEXT DEFAULT '',
-                    leader_discord_name TEXT,
-                    leader_discord_ID INTEGER
+                    ScheduleID INTEGER PRIMARY KEY,
+                    Title TEXT,
+                    Difficult TEXT DEFAULT '',
+                    Goal TEXT DEFAULT '',
+                    Datetime TEXT DEFAULT '',
+                    LeaderDiscordName TEXT,
+                    LeaderDiscordID INTEGER,
+                    DiscordMessageID INTEGER
                     );
                 ";
 
@@ -84,19 +87,19 @@ namespace GuildRaidBot.Data
             // 테이블 생성 쿼리
             var enrollTable = @"
                 CREATE TABLE IF NOT EXISTS Enroll (
-                    enroll_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nickname TEXT, 
-                    server TEXT DEFAULT '',
-                    faction TEXT, 
-                    class TEXT, 
-                    sub_class TEXT, 
-                    history TEXT DEFAULT '',
-                    register_date TEXT, 
-                    state TEXT,
-                    discord_ID INTEGER,
-                    discord_name TEXT DEFAULT '',
-                    schedule_ID INTEGER,
-                    FOREIGN KEY (schedule_ID) REFERENCES schedule(schedule_ID) ON DELETE CASCADE
+                    EnrollID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Nickname TEXT, 
+                    Server TEXT DEFAULT '',
+                    Faction TEXT, 
+                    Class TEXT, 
+                    SubClass TEXT, 
+                    History TEXT DEFAULT '',
+                    RegisterDatetime TEXT, 
+                    State TEXT,
+                    DiscordName TEXT DEFAULT '',
+                    DiscordID INTEGER,
+                    ScheduleID INTEGER,
+                    FOREIGN KEY (ScheduleID) REFERENCES Schedule(ScheduleID) ON DELETE CASCADE
                     );
                 ";
 
@@ -114,16 +117,36 @@ namespace GuildRaidBot.Data
 
         //}
 
-        //public void DbInsertChallenge(ChallengeEntity challenge)
-        //{
-        //    using var sqliteConnection = new SQLiteConnection(_config.botDbConnectionString);
+        public void DbInsertSchedule(Schedule schedule)
+        {
+            using SQLiteConnection sqliteConnection = new SQLiteConnection(_config.SqliteConnection);
 
-        //    var sql = "INSERT INTO Challenge (Title, MessageId, ChannelId, LeaderName, LeaderId) VALUES (@Title, @MessageId, @ChannelId, @LeaderName, @LeaderId)";
-        //    {
-        //        var rowsAffected = sqliteConnection.Execute(sql, challenge);
-        //        Console.WriteLine($"{rowsAffected} row(s) inserted.");
-        //    }
-        //}
+            sqliteConnection.Open();
+
+            sqliteConnection.Insert<Schedule>(schedule);
+        }
+
+        public void DbInsertEnroll(Enroll enroll)
+        {
+            using SQLiteConnection sqliteConnection = new SQLiteConnection(_config.SqliteConnection);
+
+            sqliteConnection.Open();
+
+            sqliteConnection.Insert<Enroll>(enroll);
+        }
+
+        public async Task<ulong> DbGetScheduleID(ulong messageID)
+        {
+            using SQLiteConnection sqliteConnection = new SQLiteConnection(_config.SqliteConnection);
+
+            string query = "SELECT * FROM Schedule WHERE DiscordMessageID = @DiscordMessageID";
+            Schedule schedule = await sqliteConnection.QueryFirstOrDefaultAsync<Schedule>(query, new { DiscordMessageID = messageID });
+            if (schedule is null)
+            {
+                throw new Exception("Invalid Query");
+            }
+            return schedule.ScheduleID;
+        }
 
         //public List<ExerciseEntity> DbSelectExercise(ulong ChannelId)
         //{

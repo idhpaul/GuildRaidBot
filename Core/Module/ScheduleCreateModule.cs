@@ -16,6 +16,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using System.Threading.Channels;
+using Microsoft.VisualBasic;
+using GuildRaidBot.Data;
+using GuildRaidBot.Core.Attribute;
 
 namespace GuildRaidBot.Core.Module
 {
@@ -24,17 +27,19 @@ namespace GuildRaidBot.Core.Module
 
         private readonly BotConfig _config;
         private readonly InteractionHandler _handler;
+        private readonly SqliteConnector _sqlite;
 
-        ScheduleCreateModule(BotConfig config, InteractionHandler handler)
+        ScheduleCreateModule(BotConfig config, InteractionHandler handler, SqliteConnector sqlite)
         {
             _config = config;
             _handler = handler;
+            _sqlite = sqlite;
 
-            Log.Debug("ChallengeCreateModule constructor called");
+            Log.Debug("ScheduleCreateModule constructor called");
         }
 
         [SlashCommand("일정등록", "공대 일정을 등록할 수 있습니다.")]
-        [GuildRaidBot.Core.Attribute.RequireRoleAttribute(ERole.Admin)]
+        [RequireCommandRole(ERole.Admin)]
         public async Task ScheduleCreateCommand()
         {
             await Context.Interaction.RespondWithModalAsync<ScheduleCreateModal>("md_id_schedule_create");
@@ -103,16 +108,36 @@ namespace GuildRaidBot.Core.Module
 
             // Add Button before message
             var buttons = new ComponentBuilder()
-                            .WithButton("탱커 신청", "bt_regist_tank", ButtonStyle.Primary, new Emoji("🛡️"))
-                            .WithButton("근딜/원딜 신청", "bt_regist_deal", ButtonStyle.Danger, new Emoji("⚔️"))
-                            .WithButton("힐러 신청", "bt_regist_heal", ButtonStyle.Success, new Emoji("🤍"))
-                            .WithButton("신청 현황 및 문의(메시지 최하단 확인)", "bt_regist_status", ButtonStyle.Secondary,row:1)
+                            .WithButton("탱커 신청", $"bt_regist:{EClass.Tank}", ButtonStyle.Primary, new Emoji(EnumUtil.GetDescription(EClass.Tank)))
+                            .WithButton("근딜/원딜 신청", $"bt_regist:{EClass.Deal}", ButtonStyle.Danger, new Emoji(EnumUtil.GetDescription(EClass.Deal)))
+                            .WithButton("힐러 신청", $"bt_regist:{EClass.Heal}", ButtonStyle.Success, new Emoji(EnumUtil.GetDescription(EClass.Heal)))
+                            .WithButton("신청 현황 및 문의(메시지 최하단 확인)", $"bt_regist_status", ButtonStyle.Secondary,row:1)
                             .Build();
 
 
             await sentMessage.ModifyAsync(message => message.Components = buttons);
 
             // Input DB
+            try
+            {
+                _sqlite.DbInsertSchedule(new Data.Entity.Schedule
+                {
+                    Title = modal.ScheduleTitle,
+                    Difficult = modal.Difficult,
+                    Goal = modal.Goal,
+                    Datetime = modal.Datetime,
+                    LeaderDiscordName = Context.User.GlobalName,
+                    LeaderDiscordID = Context.User.Id,
+                    DiscordMessageID = sentMessage.Id
+                });
+
+                Log.Information($"신규 일정이 등록되었습니다.{modal.ScheduleTitle}/{modal.Difficult}/{modal.Datetime}/{Context.User.GlobalName}");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"{ex.GetType()}/{ex}");
+                throw;
+            }
 
         }
     }

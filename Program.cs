@@ -14,6 +14,7 @@ using GuildRaidBot.Core.Handler;
 using GuildRaidBot.Core.Enum;
 using GuildRaidBot.Data;
 using GuildRaidBot.Util;
+using GuildRaidBot.Core.Module;
 
 
 namespace GuildRaidBot;
