@@ -28,7 +28,7 @@ namespace GuildRaidBot.Util
             _client.Log += logHandler;
             _interactionService.Log += logHandler;
 
-            log = (Program._mode == Core.Enum.EProgramMode.Dev)
+            log = (Program.Mode == Core.Enum.EProgramMode.Dev)
                 ? new LoggerConfiguration()
                     .MinimumLevel.Verbose()
                     .WriteTo.Console()
@@ -83,6 +83,39 @@ namespace GuildRaidBot.Util
                     case LogSeverity.Debug:
                         Log.Debug(cmdException, $"[Command/{message.Severity}] {cmdException.Command.Aliases[0]}"
                             + $" failed to execute in {cmdException.Context.Channel}.");
+                        break;
+                    default:
+                        Debug.Fail("unknown type");
+                        break;
+                }
+            }
+            else if(message.Exception is InteractionException interactionException)
+            {
+                switch (message.Severity)
+                {
+                    case LogSeverity.Critical:
+                        Log.Fatal(interactionException, $"[Interaction/{message.Severity}] {interactionException.Message}"
+                            + $" failed to execute in {interactionException.StackTrace}.");
+                        break;
+                    case LogSeverity.Error:
+                        Log.Error(interactionException, $"[Interaction/{message.Severity}] {interactionException.Message}"
+                            + $" failed to execute in {interactionException.StackTrace}.");
+                        break;
+                    case LogSeverity.Warning:
+                        Log.Warning(interactionException, $"[Interaction/{message.Severity}] {interactionException.Message}"
+                            + $" failed to execute in {interactionException.StackTrace}.");
+                        break;
+                    case LogSeverity.Info:
+                        Log.Information(interactionException, $"[Interaction/{message.Severity}] {interactionException.Message}"
+                            + $" failed to execute in {interactionException.StackTrace}.");
+                        break;
+                    case LogSeverity.Verbose:
+                        Log.Verbose(interactionException, $"[Interaction/{message.Severity}] {interactionException.Message}"
+                            + $" failed to execute in {interactionException.StackTrace}.");
+                        break;
+                    case LogSeverity.Debug:
+                        Log.Debug(interactionException, $"[Interaction/{message.Severity}] {interactionException.Message}"
+                            + $" failed to execute in {interactionException.StackTrace}.");
                         break;
                     default:
                         Debug.Fail("unknown type");

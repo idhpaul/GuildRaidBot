@@ -90,6 +90,24 @@ namespace GuildRaidBot.Core.Module
         [ModalInteraction("md_id_schedule_create")]
         public async Task ScheduleCreateModalResponse(ScheduleCreateModal modal)
         {
+            try
+            {
+                // Covert Datetime
+                DateTime datetime = DateTimeUtil.StringFormatToDatetime(modal.Datetime, "yyyy-MM-dd / HH:mm");
+            }
+            catch (FormatException ex)
+            {
+                await RespondAsync($"{ex.Message} / 날짜 형식을 맞춰주세요(ex 2025-01-31 / 18:00)", ephemeral:true);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                await RespondAsync($"{ex.GetType()}/{ex}", ephemeral: true);
+                throw;
+            }
+            
+            
+
             // Send Schedule message
             Embed scheduleEmbed = new EmbedBuilder()
                             .WithTitle(modal.ScheduleTitle)

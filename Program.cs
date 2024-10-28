@@ -22,7 +22,7 @@ namespace GuildRaidBot;
 internal class Program
 {
     private static IServiceProvider _services = default!;
-    public readonly static EProgramMode _mode = EProgramMode.Dev;
+    public readonly static EProgramMode Mode = EProgramMode.Dev;
 
     public static async Task Main(string[] args)
     {
@@ -32,7 +32,7 @@ internal class Program
 
             lifetime.ApplicationStarted.Register(() =>
             {
-                Log.Information($"Started / Mode : {_mode}");
+                Log.Information($"Started / Mode : {Mode}");
             });
             lifetime.ApplicationStopping.Register(() =>
             {
@@ -83,7 +83,7 @@ internal class Program
 
     private static string getTokenFromSecretJson(IConfigurationRoot secretKey)
     {
-        string? discordToken = (_mode == EProgramMode.Live) ? secretKey["DiscordToken"] : secretKey["Dev:DiscordToken"];
+        string? discordToken = (Mode == EProgramMode.Live) ? secretKey["DiscordToken"] : secretKey["Dev:DiscordToken"];
         Debug.Assert(discordToken is not null);
         if (discordToken is null)
         {
@@ -98,11 +98,11 @@ internal class Program
     {
 
         // Get Config value at secrets.json
-        ulong guildID = Convert.ToUInt64((_mode == EProgramMode.Live) ? secretKey["Config:GuildID"] : secretKey["Dev:Config:GuildID"]);
-        ulong registerChannelID = Convert.ToUInt64((_mode == EProgramMode.Live) ? secretKey["Config:RegisterChannelID"] : secretKey["Dev:Config:RegisterChannelID"]);
-        ulong confirmChannelID = Convert.ToUInt64((_mode == EProgramMode.Live) ? secretKey["Config:ConfirmChannelID"] : secretKey["Dev:Config:ConfirmChannelID"]);
-        ulong inquireCategoryID = Convert.ToUInt64((_mode == EProgramMode.Live) ? secretKey["Config:InquireCategoryID"] : secretKey["Dev:Config:InquireCategoryID"]);
-        string? sqliteDbName = (_mode == EProgramMode.Live) ? secretKey["Config:SqliteDbName"] : secretKey["Dev:Config:SqliteDbName"];
+        ulong guildID = Convert.ToUInt64((Mode == EProgramMode.Live) ? secretKey["Config:GuildID"] : secretKey["Dev:Config:GuildID"]);
+        ulong registerChannelID = Convert.ToUInt64((Mode == EProgramMode.Live) ? secretKey["Config:RegisterChannelID"] : secretKey["Dev:Config:RegisterChannelID"]);
+        ulong confirmChannelID = Convert.ToUInt64((Mode == EProgramMode.Live) ? secretKey["Config:ConfirmChannelID"] : secretKey["Dev:Config:ConfirmChannelID"]);
+        ulong inquireCategoryID = Convert.ToUInt64((Mode == EProgramMode.Live) ? secretKey["Config:InquireCategoryID"] : secretKey["Dev:Config:InquireCategoryID"]);
+        string? sqliteDbName = (Mode == EProgramMode.Live) ? secretKey["Config:SqliteDbName"] : secretKey["Dev:Config:SqliteDbName"];
 
         Debug.Assert(guildID != 0 );
         Debug.Assert(registerChannelID != 0 );
@@ -145,7 +145,7 @@ internal class Program
         {
             var discordSocketConfig = new DiscordSocketConfig
             {
-                LogLevel = (_mode == EProgramMode.Live) ? LogSeverity.Info : LogSeverity.Verbose,
+                LogLevel = (Mode == EProgramMode.Live) ? LogSeverity.Info : LogSeverity.Verbose,
                 MessageCacheSize = 100,
                 GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers | GatewayIntents.MessageContent,
                 AlwaysDownloadUsers = true,
@@ -157,7 +157,7 @@ internal class Program
         {
             var interactionConfig = new InteractionServiceConfig
             {
-                LogLevel = (_mode == EProgramMode.Live) ? LogSeverity.Info : LogSeverity.Verbose,
+                LogLevel = (Mode == EProgramMode.Live) ? LogSeverity.Info : LogSeverity.Verbose,
             };
 
             return new InteractionService(provider.GetRequiredService<DiscordSocketClient>().Rest, interactionConfig);
