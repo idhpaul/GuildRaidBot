@@ -7,11 +7,11 @@ using Dapper.Contrib.Extensions;
 
 namespace GuildRaidBot.Data.Entity
 {
-    [Table("Enroll")]
-    public class Enroll
+    [Table("Registration")]
+    public class Registration
     {
         [Key]
-        public ulong EnrollID { get; set; }
+        public ulong RegistrationID { get; set; }
         public string Nickname { get; set; } = string.Empty;
         public string Server { get; set; } = string.Empty;
         public string Faction { get; set; } = string.Empty;

@@ -2,14 +2,18 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using GuildRaidBot.Config;
 using GuildRaidBot.Core.Enum;
 using GuildRaidBot.Core.Handler;
 using GuildRaidBot.Data;
+using GuildRaidBot.Data.Entity;
+using GuildRaidBot.Util;
 
 namespace GuildRaidBot.Core.Module
 {
@@ -29,17 +33,115 @@ namespace GuildRaidBot.Core.Module
             Log.Debug("ScheduleButtonModule constructor called");
         }
 
+        private string messageFormatAlreadyExist(string existInfo)
+        {
+            Debug.Assert(existInfo is not null);
+
+            return "## Notice\n" +
+                    "> 💡 일정 신청 정보 입니다.\n" +
+                    $"{existInfo}\n" +
+                    "> 🔻 **<신청 취소>**, **<직업 변경>**, **<기타 문의>**";
+        }
+
+        private string messageFormatSucsessRegister()
+        {
+            return "## Notice\n> 💡 일정 신청이 완료되었습니다.";
+        }
+
+        private string messageFormatNeedRegister()
+        {
+            return "## Notice\n> 💡 일정 신청이 필요합니다.";
+        }
+
+        private string messageFormatRequestInquire()
+        {
+            return "## Notice\n> 💡 문의 요청이 되었습니다.";
+        }
+
+        private MessageComponent InquireButton(ulong scheduleMessageID)
+        {
+            return new ComponentBuilder()
+                                    .WithButton("취소, 변경, 기타 문의", $"bt_inquire:{scheduleMessageID}", ButtonStyle.Danger, new Emoji("📞"))
+                                    .Build();
+        }
 
         [ComponentInteraction("bt_regist:*")]
         public async Task Regist(EClass @class)
         {
-            await Context.Interaction.RespondWithModalAsync<ScheduleRegistModal>($"md_id_schedule_regist:{@class}");
+            try
+            {
+                SocketMessageComponent? interaction = Context.Interaction as SocketMessageComponent;
+                if (interaction is null)
+                {
+                    Log.Error("Interaction casting failed at Regist");
+                    await RespondAsync("Interaction casting failed", ephemeral: true);
+                }
+                else
+                {
+                    Registration? registration = await _sqlite.GetRegistrationOrNull(interaction);
+                    if (registration is not null)
+                    {
+                        string table = StringTableViewUtil.ConvertTableView(registration);
+
+                        // registration data to 
+                        await RespondAsync(messageFormatAlreadyExist($"```{table}```"), components: InquireButton(interaction.Message.Id), ephemeral: true);
+                    }
+                    else
+                    {
+                        await Context.Interaction.RespondWithModalAsync<ScheduleRegistModal>($"md_id_schedule_regist:{@class}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await RespondAsync($"{ex.GetType()}/{ex}", ephemeral: true);
+                throw;
+            }
+            
+
         }
 
         [ComponentInteraction("bt_regist_status")]
-        public async Task RegistStatus(ulong messageID)
+        public async Task RegistStatus()
         {
-            await Context.Interaction.RespondWithModalAsync<ScheduleRegistModal>("md_id_schedule_regist");
+            try
+            {
+                SocketMessageComponent? interaction = Context.Interaction as SocketMessageComponent;
+                if (interaction is null)
+                {
+                    Log.Error("Interaction casting failed at Regist");
+                    await RespondAsync("Interaction casting failed", ephemeral: true);
+                }
+                else
+                {
+                    Registration? registration = await _sqlite.GetRegistrationOrNull(interaction);
+                    if (registration is not null)
+                    {
+                        string table = StringTableViewUtil.ConvertTableView(registration);
+
+                        // registration data to 
+                        await RespondAsync(messageFormatAlreadyExist($"```{table}```"), components: InquireButton(interaction.Message.Id), ephemeral: true);
+                    }
+                    else
+                    {
+                        await RespondAsync(messageFormatNeedRegister(), ephemeral: true);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                await RespondAsync($"{ex.GetType()}/{ex}", ephemeral: true);
+                throw;
+            }
+
+            
+        }
+
+        [ComponentInteraction("bt_inquire:*")]
+        public async Task Inquire(ulong scheduleMessageID)
+        {
+            await Context.Interaction.RespondWithModalAsync<ScheduleInquireModal>($"md_id_schedule_inquire:{scheduleMessageID}");
         }
 
         public class ScheduleRegistModal : IModal
@@ -81,36 +183,7 @@ namespace GuildRaidBot.Core.Module
         [ModalInteraction("md_id_schedule_regist:*")]
         public async Task ScheduleRegistModalResponse(EClass @class, ScheduleRegistModal modal)
         {
-            Log.Debug(@class.ToString());
-            await RespondAsync("신청 되었습니다.",ephemeral:true);
-
-
-            //// Send Regist message to RegistListChannel
-            //Embed scheduleEmbed = new EmbedBuilder()
-            //                .WithTitle(modal.ScheduleTitle)
-            //                .WithFields(new EmbedFieldBuilder().WithName("\u200B").WithValue($"> {modal.Difficult}").WithIsInline(false))
-            //                .WithFields(new EmbedFieldBuilder().WithName("\u200B").WithValue($"> {modal.Goal}").WithIsInline(false))
-            //                .WithFields(new EmbedFieldBuilder().WithName("\u200B").WithValue($"> {modal.Datetime}").WithIsInline(false))
-            //                .WithFields(new EmbedFieldBuilder().WithName("😎 *공장*").WithValue($"{Context.User.Mention}").WithIsInline(true))
-            //                .WithThumbnailUrl(Context.Client.CurrentUser.GetAvatarUrl())
-            //                .WithColor(Discord.Color.Green)
-            //                .Build();
-
-            //await RespondAsync(modal.Context, embed: scheduleEmbed);
-
-            //// Get Schdule message ID
-            //IUserMessage sentMessage = await GetOriginalResponseAsync();
-
-            //// Add Button before message
-            //var buttons = new ComponentBuilder()
-            //                .WithButton("탱커 신청", $"bt_regist_tank:{sentMessage.Id}", ButtonStyle.Primary, new Emoji("🛡️"))
-            //                .WithButton("근딜/원딜 신청", $"bt_regist_deal:{sentMessage.Id}", ButtonStyle.Danger, new Emoji("⚔️"))
-            //                .WithButton("힐러 신청", $"bt_regist_heal:{sentMessage.Id}", ButtonStyle.Success, new Emoji("🤍"))
-            //                .WithButton("신청 현황 및 문의(메시지 최하단 확인)", $"bt_regist_status:{sentMessage.Id}", ButtonStyle.Secondary, row: 1)
-            //                .Build();
-
-
-            //await sentMessage.ModifyAsync(message => message.Components = buttons);
+            await RespondAsync(messageFormatSucsessRegister(), ephemeral:true);
 
             // Input DB
             try
@@ -118,10 +191,8 @@ namespace GuildRaidBot.Core.Module
                 // Get Schedule ID from Message ID
                 SocketModal interaction = (SocketModal)Context.Interaction;
 
-                ulong scheduleID = await _sqlite.DbGetScheduleID(interaction.Message.Id);
-                
                 // Insert DB
-                _sqlite.DbInsertEnroll(new Data.Entity.Enroll
+                _sqlite.AddRegistration(new Data.Entity.Registration
                 {
                     Nickname = modal.NickName,
                     Server = modal.Server,
@@ -133,7 +204,7 @@ namespace GuildRaidBot.Core.Module
                     State = ERegistState.WAIT.ToString(),
                     DiscordName = Context.User.GlobalName,
                     DiscordID = Context.User.Id,
-                    ScheduleID = scheduleID
+                    ScheduleID = interaction.Message.Id
                 });
 
                 Log.Information($"새로운 신청이 왔습니다.{modal.NickName}({Context.User.GlobalName})/{interaction.Message.Embeds.First().Title}");
@@ -145,5 +216,40 @@ namespace GuildRaidBot.Core.Module
             }
 
         }
+    
+        public class ScheduleInquireModal : IModal
+        {
+            public string Title => "✏️ 문의 양식";
+
+            [RequiredInput(true)]
+            [InputLabel("❗ 문의 내용(<신청 취소>, <직업 변경>, <기타 문의> 등)")]
+            [ModalTextInput("md_lb_si_reason",
+                                style:TextInputStyle.Paragraph,
+                                placeholder: "문의 하실 내용을 입력해주세요.")]
+            public required string Reason { get; set; }
+
+        }
+
+        [ModalInteraction("md_id_schedule_inquire:*")]
+        public async Task ScheduleInquireModalResponse(ulong scheduleMessageID, ScheduleInquireModal modal)
+        {
+
+            await RespondAsync(messageFormatRequestInquire(), ephemeral: true);
+
+            await Task.Delay(5000);
+            await DeleteOriginalResponseAsync();
+
+
+            // Check for duplicates thread channel name
+
+            // Create thread channel
+
+            // Tag User and Admin
+
+            // Unregist button
+
+
+        }
+
     }
 }

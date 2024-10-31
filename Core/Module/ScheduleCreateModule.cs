@@ -53,12 +53,13 @@ namespace GuildRaidBot.Core.Module
             [InputLabel("공지 본문")]
             [ModalTextInput("md_lb_sc_context",
                                 style: TextInputStyle.Paragraph,
-                                initValue: "### [신규 레이드 일정] @everyone \n" + 
+                                initValue: "## [신규 레이드 일정] @everyone \n" +
+                                            "### 🙏  구인 클래스\n" +
                                             "> 🛡️  :  **전클 구인**\n" +
                                             "> ⚔️  :  **전클 구인**\n" +
                                             "> 💚  :  **전클 구인**\n" +
-                                            "* ✅ 구인 클래스를 꼭 확인해 주세요.\n" +
-                                            "* ✅ 레이드 시작 15분 전에 미리 접속해 주세요.\n")]
+                                            "### 📃  메모\n" +
+                                            "> (지원 조건, 입찰 룰 등 메모 / 없으면 제거 할 것)")]
             public required string Context { get; set; }
 
             [RequiredInput(true)]
@@ -94,66 +95,57 @@ namespace GuildRaidBot.Core.Module
             {
                 // Covert Datetime
                 DateTime datetime = DateTimeUtil.StringFormatToDatetime(modal.Datetime, "yyyy-MM-dd / HH:mm");
-            }
-            catch (FormatException ex)
-            {
-                await RespondAsync($"{ex.Message} / 날짜 형식을 맞춰주세요(ex 2025-01-31 / 18:00)", ephemeral:true);
-                throw;
-            }
-            catch (Exception ex)
-            {
-                await RespondAsync($"{ex.GetType()}/{ex}", ephemeral: true);
-                throw;
-            }
-            
-            
 
-            // Send Schedule message
-            Embed scheduleEmbed = new EmbedBuilder()
-                            .WithTitle(modal.ScheduleTitle)
-                            .WithFields(new EmbedFieldBuilder().WithName("\u200B").WithValue($"> {modal.Difficult}").WithIsInline(false))
-                            .WithFields(new EmbedFieldBuilder().WithName("\u200B").WithValue($"> {modal.Goal}").WithIsInline(false))
-                            .WithFields(new EmbedFieldBuilder().WithName("\u200B").WithValue($"> {modal.Datetime}").WithIsInline(false))
-                            .WithFields(new EmbedFieldBuilder().WithName("😎 *공장*").WithValue($"{Context.User.Mention}").WithIsInline(true))
-                            .WithThumbnailUrl(Context.Client.CurrentUser.GetAvatarUrl())
-                            .WithColor(Discord.Color.Green)
-                            .Build();
+                // Send Schedule message
+                Embed scheduleEmbed = new EmbedBuilder()
+                                .WithTitle(modal.ScheduleTitle)
+                                .WithFields(new EmbedFieldBuilder().WithName("\u200B").WithValue($"> **{modal.Difficult}**").WithIsInline(false))
+                                .WithFields(new EmbedFieldBuilder().WithName("\u200B").WithValue($"> **{modal.Goal}**").WithIsInline(false))
+                                .WithFields(new EmbedFieldBuilder().WithName("\u200B").WithValue($"> **{modal.Datetime}**").WithIsInline(false))
+                                .WithFields(new EmbedFieldBuilder().WithName("`Leader`").WithValue($"{Context.User.Mention}").WithIsInline(true))
+                                .WithFields(new EmbedFieldBuilder().WithName("`Check`").WithValue($"* :heavy_check_mark: *구인 클래스를 꼭 확인해 주세요.*\n* :heavy_check_mark: *레이드 시작 15분 전 미리 접속해 주세요.*").WithIsInline(true))
+                                .WithThumbnailUrl(Context.Client.CurrentUser.GetAvatarUrl())
+                                .WithColor(Discord.Color.Green)
+                                .Build();
 
-            await RespondAsync(modal.Context,embed:scheduleEmbed);
+                await RespondAsync(modal.Context, embed: scheduleEmbed);
 
-            // Get Schdule message ID
-            IUserMessage sentMessage = await GetOriginalResponseAsync();
+                // Get Schdule message ID
+                IUserMessage sentMessage = await GetOriginalResponseAsync();
 
-            // Add Button before message
-            var buttons = new ComponentBuilder()
-                            .WithButton("탱커 신청", $"bt_regist:{EClass.Tank}", ButtonStyle.Primary, new Emoji(EnumUtil.GetDescription(EClass.Tank)))
-                            .WithButton("근딜/원딜 신청", $"bt_regist:{EClass.Deal}", ButtonStyle.Danger, new Emoji(EnumUtil.GetDescription(EClass.Deal)))
-                            .WithButton("힐러 신청", $"bt_regist:{EClass.Heal}", ButtonStyle.Success, new Emoji(EnumUtil.GetDescription(EClass.Heal)))
-                            .WithButton("신청 현황 및 문의(메시지 최하단 확인)", $"bt_regist_status", ButtonStyle.Secondary,row:1)
-                            .Build();
+                // Add Button before message
+                var buttons = new ComponentBuilder()
+                                .WithButton("탱커 신청", $"bt_regist:{EClass.Tank}", ButtonStyle.Primary, new Emoji(EnumUtil.GetDescription(EClass.Tank)))
+                                .WithButton("근딜/원딜 신청", $"bt_regist:{EClass.Deal}", ButtonStyle.Danger, new Emoji(EnumUtil.GetDescription(EClass.Deal)))
+                                .WithButton("힐러 신청", $"bt_regist:{EClass.Heal}", ButtonStyle.Success, new Emoji(EnumUtil.GetDescription(EClass.Heal)))
+                                .WithButton("신청 현황 및 문의(메시지 최하단 확인)", $"bt_regist_status", ButtonStyle.Secondary, row: 1)
+                                .Build();
 
+                await sentMessage.ModifyAsync(message => message.Components = buttons);
 
-            await sentMessage.ModifyAsync(message => message.Components = buttons);
-
-            // Input DB
-            try
-            {
-                _sqlite.DbInsertSchedule(new Data.Entity.Schedule
+                _sqlite.AddSchedule(new Data.Entity.Schedule
                 {
+                    ScheduleID = sentMessage.Id,
                     Title = modal.ScheduleTitle,
                     Difficult = modal.Difficult,
                     Goal = modal.Goal,
                     Datetime = modal.Datetime,
                     LeaderDiscordName = Context.User.GlobalName,
-                    LeaderDiscordID = Context.User.Id,
-                    DiscordMessageID = sentMessage.Id
+                    LeaderDiscordID = Context.User.Id
                 });
 
                 Log.Information($"신규 일정이 등록되었습니다.{modal.ScheduleTitle}/{modal.Difficult}/{modal.Datetime}/{Context.User.GlobalName}");
             }
+            catch (FormatException ex)
+            {
+                await RespondAsync($"{ex.Message} / 날짜 형식을 맞춰주세요(ex 2025-01-31 / 18:00)", ephemeral:true);
+
+                throw;
+            }
             catch (Exception ex)
             {
-                Log.Error($"{ex.GetType()}/{ex}");
+                await RespondAsync($"{ex.GetType()}/{ex}", ephemeral: true);
+
                 throw;
             }
 

@@ -13,6 +13,10 @@ using GuildRaidBot.Config;
 using GuildRaidBot.Util;
 using GuildRaidBot.Data.Entity;
 using Dapper.Contrib.Extensions;
+using System.Diagnostics;
+using GuildRaidBot.Core.Enum;
+using Discord.WebSocket;
+using System.Reactive.Concurrency;
 
 namespace GuildRaidBot.Data
 {
@@ -29,9 +33,9 @@ namespace GuildRaidBot.Data
 
         public void Initialize()
         {
-            Log.Debug($"Sqlite db name : {_config.ConfigValue.SqliteDbName}");
-            Log.Debug($"Sqlite db path : {_config.SqliteDbPath}");
-            Log.Debug($"Sqlite db connection string : {_config.SqliteConnection}");
+            Log.Information($"Sqlite db name : {_config.ConfigValue.SqliteDbName}");
+            Log.Information($"Sqlite db path : {_config.SqliteDbPath}");
+            Log.Information($"Sqlite db connection string : {_config.SqliteConnection}");
 
             try
             {
@@ -39,12 +43,12 @@ namespace GuildRaidBot.Data
 
                 if (!File.Exists(_config.SqliteDbPath))
                 {
-                    Log.Debug("Sqlite db 파일 생성");
+                    Log.Information("Sqlite db created.");
                     SQLiteConnection.CreateFile(_config.ConfigValue.SqliteDbName);
                 }
 
-                CreateScheduleTable();
-                CreateEnrollTable();
+                createScheduleTable();
+                createRegistrationTable();
             }
             catch (Exception ex)
             {
@@ -55,13 +59,17 @@ namespace GuildRaidBot.Data
 
         }
 
-        private void CreateScheduleTable()
+        // DB transection
+        //      Insert  <-> Add
+        //      Delete  <-> Remove
+        //      Select  <-> Get
+        private void createScheduleTable()
         {
             using SQLiteConnection sqliteConnection = new SQLiteConnection(_config.SqliteConnection);
 
             sqliteConnection.Open();
 
-            string scheduleTable = @"
+            string sql = @"
                  CREATE TABLE IF NOT EXISTS Schedule (
                     ScheduleID INTEGER PRIMARY KEY,
                     Title TEXT,
@@ -69,25 +77,24 @@ namespace GuildRaidBot.Data
                     Goal TEXT DEFAULT '',
                     Datetime TEXT DEFAULT '',
                     LeaderDiscordName TEXT,
-                    LeaderDiscordID INTEGER,
-                    DiscordMessageID INTEGER
+                    LeaderDiscordID INTEGER
                     );
                 ";
 
-            sqliteConnection.Execute(scheduleTable);
+            sqliteConnection.Execute(sql);
 
         }
 
-        private void CreateEnrollTable()
+        private void createRegistrationTable()
         {
             using SQLiteConnection sqliteConnection = new SQLiteConnection(_config.SqliteConnection);
 
             sqliteConnection.Open();
 
             // 테이블 생성 쿼리
-            var enrollTable = @"
-                CREATE TABLE IF NOT EXISTS Enroll (
-                    EnrollID INTEGER PRIMARY KEY AUTOINCREMENT,
+            var sql = @"
+                CREATE TABLE IF NOT EXISTS Registration (
+                    RegistrationID INTEGER PRIMARY KEY AUTOINCREMENT,
                     Nickname TEXT, 
                     Server TEXT DEFAULT '',
                     Faction TEXT, 
@@ -103,22 +110,27 @@ namespace GuildRaidBot.Data
                     );
                 ";
 
-            sqliteConnection.Execute(enrollTable);
+            sqliteConnection.Execute(sql);
         }
 
-        //public async Task<ChallengeEntity> DbSelectChallenge(ulong messageId)
-        //{
-        //    using var sqliteConnection = new SQLiteConnection(_config.botDbConnectionString);
-
-        //    var sql = "SELECT * FROM Challenge WHERE MessageId = @MessageId";
-
-        //    var challenge = await sqliteConnection.QuerySingleOrDefaultAsync<ChallengeEntity>(sql, new { MessageId = messageId });
-        //    return challenge;
-
-        //}
-
-        public void DbInsertSchedule(Schedule schedule)
+        private async Task<Registration?> selectRegistrationOrNull(ulong scheduleID, ulong userID)
         {
+            Debug.Assert(scheduleID > 0);
+            Debug.Assert(userID > 0);
+
+            using SQLiteConnection sqliteConnection = new SQLiteConnection(_config.SqliteConnection);
+
+            string sql = "SELECT * FROM Registration WHERE ScheduleID = @ScheduleID AND DiscordID = @DiscordID";
+
+            return await sqliteConnection.QueryFirstOrDefaultAsync<Registration>(sql, new { ScheduleID = scheduleID, DiscordID = userID });
+
+        }
+
+        // The prefix 'Add' in the function means database 'Insert' transection
+        public void AddSchedule(Schedule schedule)
+        {
+            Debug.Assert(schedule is not null);
+
             using SQLiteConnection sqliteConnection = new SQLiteConnection(_config.SqliteConnection);
 
             sqliteConnection.Open();
@@ -126,26 +138,30 @@ namespace GuildRaidBot.Data
             sqliteConnection.Insert<Schedule>(schedule);
         }
 
-        public void DbInsertEnroll(Enroll enroll)
+        public void AddRegistration(Registration enroll)
         {
+            Debug.Assert(enroll is not null);
+
             using SQLiteConnection sqliteConnection = new SQLiteConnection(_config.SqliteConnection);
 
             sqliteConnection.Open();
 
-            sqliteConnection.Insert<Enroll>(enroll);
+            sqliteConnection.Insert<Registration>(enroll);
         }
 
-        public async Task<ulong> DbGetScheduleID(ulong messageID)
+        // The prefix 'Get' in the function means database 'Select' transcetion
+        public async Task<Registration?> GetRegistrationOrNull(SocketMessageComponent message)
         {
-            using SQLiteConnection sqliteConnection = new SQLiteConnection(_config.SqliteConnection);
+            Debug.Assert(message is not null);
 
-            string query = "SELECT * FROM Schedule WHERE DiscordMessageID = @DiscordMessageID";
-            Schedule schedule = await sqliteConnection.QueryFirstOrDefaultAsync<Schedule>(query, new { DiscordMessageID = messageID });
-            if (schedule is null)
-            {
-                throw new Exception("Invalid Query");
-            }
-            return schedule.ScheduleID;
+            // Get Message ID
+            ulong messageID = message.Message.Id;
+            // Get Interaction User ID
+            ulong userID = message.User.Id;
+
+            // Get for existence
+            return await this.selectRegistrationOrNull(messageID, userID);
+
         }
 
         //public List<ExerciseEntity> DbSelectExercise(ulong ChannelId)
